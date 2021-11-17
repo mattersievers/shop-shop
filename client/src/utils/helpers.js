@@ -19,7 +19,43 @@ export function idbPromise(storeName, method, object) {
     };
 
     request.onerror = function (e) {
-      console.log('There was an error');
+      console.log('There was an error establishing a connection');
+    };
+
+    request.onsuccess = function(e) {
+      //save a reference of the database
+      db = request.result;
+      //open transaction
+      tx = db.transaction(storeName, 'readwrite');
+      //save reference
+      store = tx.objectStore(storeName);
+
+      db.onerror = function(e){
+        console.log('error', e);
+      };
+
+      switch(method) {
+        case 'put':
+          store.put(object);
+          resolve(object);
+          break;
+        case 'get':
+          const all = store.getAll();
+          all.onsuccess = function(){
+            resolve(all.result);
+          };
+          break;
+        case 'delete':
+          store.delete(object._id);
+          break;
+        default:
+          console.log('No valid method');
+          break;  
+      }
+
+      tx.oncomplete = function() {
+        db.close();
+      };
     };
   });
 }
